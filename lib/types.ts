@@ -43,11 +43,17 @@ export interface ImageTaskSummary extends ImageTask {
   styleLabel: string;
 }
 
+export interface RuntimeProviderConfig {
+  baseUrl: string;
+  apiKey: string;
+}
+
 export interface GenerateFormInput {
   prompt: string;
   styleId: StylePresetId;
   resolution: ResolutionOption;
   enableOptimization: boolean;
+  provider: RuntimeProviderConfig;
 }
 
 export interface UploadedImageInput {

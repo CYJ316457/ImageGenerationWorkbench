@@ -4,6 +4,7 @@ import type {
   EditFormInput,
   GenerateFormInput,
   ResolutionOption,
+  RuntimeProviderConfig,
   StylePresetId,
   UploadedImageInput,
   ValidationResult
@@ -11,6 +12,63 @@ import type {
 
 const ALLOWED_RESOLUTIONS = new Set<ResolutionOption>(["auto", "1024x1024", "1536x1024", "1024x1536"]);
 const ALLOWED_STYLE_IDS = new Set<StylePresetId>(STYLE_PRESETS.map((preset) => preset.id));
+
+function normalizeBaseUrl(baseUrl: string) {
+  return baseUrl.trim().replace(/\/+$/, "");
+}
+
+function validateProvider(provider: RuntimeProviderConfig): ValidationResult<RuntimeProviderConfig> {
+  const apiKey = provider.apiKey.trim();
+  if (!apiKey) {
+    return {
+      ok: false,
+      error: {
+        field: "provider.apiKey",
+        message: "请输入可用的 API Key。"
+      }
+    };
+  }
+
+  const baseUrl = normalizeBaseUrl(provider.baseUrl);
+  if (!baseUrl) {
+    return {
+      ok: false,
+      error: {
+        field: "provider.baseUrl",
+        message: "请输入可用的 Base URL。"
+      }
+    };
+  }
+
+  try {
+    const parsed = new URL(baseUrl);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return {
+        ok: false,
+        error: {
+          field: "provider.baseUrl",
+          message: "Base URL 只支持 http 或 https。"
+        }
+      };
+    }
+  } catch {
+    return {
+      ok: false,
+      error: {
+        field: "provider.baseUrl",
+        message: "Base URL 格式无效。"
+      }
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      apiKey,
+      baseUrl
+    }
+  };
+}
 
 function validateCommon(input: GenerateFormInput): ValidationResult<GenerateFormInput> {
   if (!input.prompt.trim()) {
@@ -53,11 +111,17 @@ function validateCommon(input: GenerateFormInput): ValidationResult<GenerateForm
     };
   }
 
+  const provider = validateProvider(input.provider);
+  if (!provider.ok) {
+    return provider;
+  }
+
   return {
     ok: true,
     data: {
       ...input,
-      prompt: input.prompt.trim()
+      prompt: input.prompt.trim(),
+      provider: provider.data
     }
   };
 }

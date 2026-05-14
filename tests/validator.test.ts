@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { validateGenerateInput, validateEditInput } from "@/lib/validators/image-request";
+import { validateEditInput, validateGenerateInput } from "@/lib/validators/image-request";
 
 describe("image request validators", () => {
   it("rejects an empty prompt for generation", () => {
@@ -8,26 +8,72 @@ describe("image request validators", () => {
       prompt: "   ",
       styleId: "none",
       resolution: "auto",
-      enableOptimization: true
+      enableOptimization: true,
+      provider: {
+        baseUrl: "https://api.openai.com/v1",
+        apiKey: "sk-test"
+      }
     });
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error.message).toContain("提示词");
+      expect(result.error.field).toBe("prompt");
     }
   });
 
-  it("accepts a valid generate request", () => {
+  it("accepts a valid generate request and normalizes provider fields", () => {
     const result = validateGenerateInput({
       prompt: "产品海报",
       styleId: "product",
       resolution: "1024x1024",
-      enableOptimization: true
+      enableOptimization: true,
+      provider: {
+        baseUrl: "https://api.openai.com/v1/",
+        apiKey: "  sk-test  "
+      }
     });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.resolution).toBe("1024x1024");
+      expect(result.data.provider.baseUrl).toBe("https://api.openai.com/v1");
+      expect(result.data.provider.apiKey).toBe("sk-test");
+    }
+  });
+
+  it("rejects a missing runtime api key", () => {
+    const result = validateGenerateInput({
+      prompt: "产品海报",
+      styleId: "product",
+      resolution: "1024x1024",
+      enableOptimization: true,
+      provider: {
+        baseUrl: "https://api.openai.com/v1",
+        apiKey: "   "
+      }
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.field).toBe("provider.apiKey");
+    }
+  });
+
+  it("rejects an invalid runtime base url", () => {
+    const result = validateGenerateInput({
+      prompt: "产品海报",
+      styleId: "product",
+      resolution: "1024x1024",
+      enableOptimization: true,
+      provider: {
+        baseUrl: "not-a-url",
+        apiKey: "sk-test"
+      }
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.field).toBe("provider.baseUrl");
     }
   });
 
@@ -37,10 +83,17 @@ describe("image request validators", () => {
       styleId: "cinematic",
       resolution: "1024x1024",
       enableOptimization: true,
+      provider: {
+        baseUrl: "https://api.openai.com/v1",
+        apiKey: "sk-test"
+      },
       sourceImage: null,
       maskImage: null
     });
 
     expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.field).toBe("sourceImage");
+    }
   });
 });

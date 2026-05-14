@@ -26,6 +26,10 @@ export async function POST(request: Request) {
       styleId: String(formData.get("styleId") || "none") as EditFormInput["styleId"],
       resolution: String(formData.get("resolution") || "auto") as EditFormInput["resolution"],
       enableOptimization: String(formData.get("enableOptimization") || "true") === "true",
+      provider: {
+        baseUrl: String(formData.get("baseUrl") || ""),
+        apiKey: String(formData.get("apiKey") || "")
+      },
       sourceImage: await readOptionalFile(formData.get("sourceImage")),
       maskImage: await readOptionalFile(formData.get("maskImage"))
     };

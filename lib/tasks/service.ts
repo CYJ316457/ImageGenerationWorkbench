@@ -108,7 +108,8 @@ export async function runGenerateTask(input: GenerateFormInput) {
   try {
     const result = await generateImageFromPrompt({
       prompt: prompt.optimizedPrompt,
-      resolution: validation.data.resolution
+      resolution: validation.data.resolution,
+      provider: validation.data.provider
     });
     const outputAssetId = await storage.saveGeneratedImage(result.base64Data, result.contentType);
     const finishedTask: ImageTask = {
@@ -162,6 +163,7 @@ export async function runEditTask(input: EditFormInput) {
     const result = await editImageFromPrompt({
       prompt: prompt.optimizedPrompt,
       resolution: validation.data.resolution,
+      provider: validation.data.provider,
       sourceImage,
       maskImage: validation.data.maskImage
     });

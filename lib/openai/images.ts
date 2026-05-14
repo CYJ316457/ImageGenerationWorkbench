@@ -2,7 +2,7 @@ import { toFile } from "openai/uploads";
 
 import { IMAGE_MODEL } from "@/lib/config";
 import { getOpenAIClient } from "@/lib/openai/client";
-import type { ResolutionOption, UploadedImageInput } from "@/lib/types";
+import type { ResolutionOption, RuntimeProviderConfig, UploadedImageInput } from "@/lib/types";
 
 function normalizeSize(resolution: ResolutionOption) {
   return resolution === "auto" ? "auto" : resolution;
@@ -11,8 +11,9 @@ function normalizeSize(resolution: ResolutionOption) {
 export async function generateImageFromPrompt(input: {
   prompt: string;
   resolution: ResolutionOption;
+  provider: RuntimeProviderConfig;
 }) {
-  const client = getOpenAIClient();
+  const client = getOpenAIClient(input.provider);
   const response = await client.images.generate({
     model: IMAGE_MODEL,
     prompt: input.prompt,
@@ -38,10 +39,11 @@ async function toSdkFile(image: UploadedImageInput) {
 export async function editImageFromPrompt(input: {
   prompt: string;
   resolution: ResolutionOption;
+  provider: RuntimeProviderConfig;
   sourceImage: UploadedImageInput;
   maskImage: UploadedImageInput | null;
 }) {
-  const client = getOpenAIClient();
+  const client = getOpenAIClient(input.provider);
   const response = await client.images.edit({
     model: IMAGE_MODEL,
     prompt: input.prompt,

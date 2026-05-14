@@ -51,6 +51,12 @@ select {
   font: inherit;
 }
 
+input,
+textarea,
+select {
+  color: var(--text);
+}
+
 .shell,
 .history-page {
   width: min(calc(100% - 40px), var(--page-width));
@@ -167,6 +173,7 @@ select {
 }
 
 .textarea,
+.text-input,
 .upload-card,
 .prompt-preview,
 .empty-state,
@@ -187,7 +194,17 @@ select {
   line-height: 1.65;
 }
 
+.text-input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  background: rgba(7, 10, 16, 0.72);
+  color: var(--text);
+  padding: 12px 14px;
+}
+
 .textarea:focus,
+.text-input:focus,
 .option-card.active,
 .preset-card.active,
 .upload-card:focus-within {
@@ -212,7 +229,8 @@ select {
 
 .option-grid,
 .preset-grid,
-.upload-grid {
+.upload-grid,
+.stack-fields {
   display: grid;
   gap: 12px;
 }
@@ -252,6 +270,47 @@ select {
 
 .upload-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field__label {
+  color: var(--text-soft);
+  font-weight: 600;
+}
+
+.security-note {
+  margin: 14px 0 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.inline-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.secondary-button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 12px 16px;
+  background: rgba(9, 13, 20, 0.82);
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: 180ms ease;
+}
+
+.secondary-button:hover,
+.option-card:hover,
+.preset-card:hover,
+.mode-chip:hover {
+  border-color: var(--line-strong);
 }
 
 .upload-card {

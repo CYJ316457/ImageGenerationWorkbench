@@ -1,11 +1,18 @@
 import OpenAI from "openai";
 
-export function getOpenAIClient() {
-  const apiKey = process.env.OPENAI_API_KEY;
+import type { RuntimeProviderConfig } from "@/lib/types";
 
-  if (!apiKey) {
-    throw new Error("缺少 OPENAI_API_KEY，无法调用图片模型。");
+export function getOpenAIClient(provider: RuntimeProviderConfig) {
+  if (!provider.apiKey) {
+    throw new Error("缺少 API Key，无法调用图片模型。");
   }
 
-  return new OpenAI({ apiKey });
+  if (!provider.baseUrl) {
+    throw new Error("缺少 Base URL，无法调用图片模型。");
+  }
+
+  return new OpenAI({
+    apiKey: provider.apiKey,
+    baseURL: provider.baseUrl
+  });
 }
