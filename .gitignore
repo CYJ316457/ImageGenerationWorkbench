@@ -5,3 +5,11 @@
 AGENTS.md
 CLAUDE.md
 .gemini/GEMINI.md
+node_modules/
+.next/
+coverage/
+*.tsbuildinfo
+data/assets/
+data/tasks/
+.env.local
+npm-debug.log*
