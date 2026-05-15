@@ -34,15 +34,16 @@ interface CachedWorkbenchState {
   apiKey: string;
 }
 
-const WORKBENCH_CACHE_KEY = "image-generation-workbench:cache:v3";
+const WORKBENCH_CACHE_KEY = "image-generation-workbench:cache:v4";
 const DEFAULT_BASE_URL = "https://api.openai.com/v1";
+const LEGACY_CACHE_KEYS = ["image-generation-workbench:cache:v3", "image-generation-workbench:cache:v2"];
 
 const DEFAULT_CACHE_STATE: CachedWorkbenchState = {
   mode: "generate",
   prompt: "",
-  styleId: "cinematic",
+  styleId: "none",
   resolution: "1536x1024",
-  enableOptimization: true,
+  enableOptimization: false,
   protocol: "images",
   baseUrl: DEFAULT_BASE_URL,
   apiKey: ""
@@ -96,6 +97,17 @@ function normalizeCachedState(raw: unknown): CachedWorkbenchState {
   };
 }
 
+function shouldMigrateLegacyDefaults(candidate: CachedWorkbenchState) {
+  return (
+    candidate.mode === "generate" &&
+    candidate.prompt === "" &&
+    candidate.styleId === "cinematic" &&
+    candidate.enableOptimization === true &&
+    candidate.resolution === "1536x1024" &&
+    candidate.protocol === "images"
+  );
+}
+
 function readCachedWorkbenchState() {
   if (typeof window === "undefined") {
     return DEFAULT_CACHE_STATE;
@@ -103,9 +115,36 @@ function readCachedWorkbenchState() {
 
   try {
     const cached = window.localStorage.getItem(WORKBENCH_CACHE_KEY);
-    return cached ? normalizeCachedState(JSON.parse(cached)) : DEFAULT_CACHE_STATE;
+    if (cached) {
+      return normalizeCachedState(JSON.parse(cached));
+    }
+
+    for (const legacyKey of LEGACY_CACHE_KEYS) {
+      const legacyCached = window.localStorage.getItem(legacyKey);
+      if (!legacyCached) {
+        continue;
+      }
+
+      const migrated = normalizeCachedState(JSON.parse(legacyCached));
+      window.localStorage.removeItem(legacyKey);
+
+      if (shouldMigrateLegacyDefaults(migrated)) {
+        return {
+          ...migrated,
+          styleId: DEFAULT_CACHE_STATE.styleId,
+          enableOptimization: DEFAULT_CACHE_STATE.enableOptimization
+        };
+      }
+
+      return migrated;
+    }
+
+    return DEFAULT_CACHE_STATE;
   } catch {
     window.localStorage.removeItem(WORKBENCH_CACHE_KEY);
+    for (const legacyKey of LEGACY_CACHE_KEYS) {
+      window.localStorage.removeItem(legacyKey);
+    }
     return DEFAULT_CACHE_STATE;
   }
 }
@@ -181,6 +220,9 @@ export function WorkbenchShell({ initialTasks }: WorkbenchShellProps) {
 
   function clearLocalCache() {
     window.localStorage.removeItem(WORKBENCH_CACHE_KEY);
+    for (const legacyKey of LEGACY_CACHE_KEYS) {
+      window.localStorage.removeItem(legacyKey);
+    }
     setDraft(DEFAULT_CACHE_STATE);
     setSourceImage(null);
     setMaskImage(null);
