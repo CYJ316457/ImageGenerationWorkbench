@@ -3,6 +3,7 @@ import { STYLE_PRESETS } from "@/lib/prompt/presets";
 import type {
   EditFormInput,
   GenerateFormInput,
+  ImageProtocol,
   ResolutionOption,
   RuntimeProviderConfig,
   StylePresetId,
@@ -11,6 +12,7 @@ import type {
 } from "@/lib/types";
 
 const ALLOWED_RESOLUTIONS = new Set<ResolutionOption>(["auto", "1024x1024", "1536x1024", "1024x1536"]);
+const ALLOWED_PROTOCOLS = new Set<ImageProtocol>(["images", "responses"]);
 const ALLOWED_STYLE_IDS = new Set<StylePresetId>(STYLE_PRESETS.map((preset) => preset.id));
 
 function normalizeBaseUrl(baseUrl: string) {
@@ -107,6 +109,16 @@ function validateCommon(input: GenerateFormInput): ValidationResult<GenerateForm
       error: {
         field: "resolution",
         message: "分辨率选项无效。"
+      }
+    };
+  }
+
+  if (!ALLOWED_PROTOCOLS.has(input.protocol)) {
+    return {
+      ok: false,
+      error: {
+        field: "protocol",
+        message: "协议选项无效。"
       }
     };
   }

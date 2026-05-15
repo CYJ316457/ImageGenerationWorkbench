@@ -8,29 +8,15 @@ interface StylePresetPanelProps {
 
 export function StylePresetPanel({ value, onChange }: StylePresetPanelProps) {
   return (
-    <section className="panel">
-      <div className="panel__header">
-        <div>
-          <p className="eyebrow">风格预设</p>
-          <h2>快速给提示词加上稳定视觉方向</h2>
-        </div>
-      </div>
-      <div className="preset-grid">
+    <label className="field">
+      <span className="field__label">风格</span>
+      <select className="text-input" onChange={(event) => onChange(event.target.value as StylePresetId)} value={value}>
         {STYLE_PRESETS.map((preset) => (
-          <button
-            className={`preset-card ${preset.id === value ? "active" : ""}`}
-            key={preset.id}
-            onClick={() => onChange(preset.id)}
-            type="button"
-          >
-            <div className="preset-card__title">
-              <strong>{preset.label}</strong>
-              <span>{preset.summary}</span>
-            </div>
-            <p>{preset.recommendedFor}</p>
-          </button>
+          <option key={preset.id} value={preset.id}>
+            {preset.label}
+          </option>
         ))}
-      </div>
-    </section>
+      </select>
+    </label>
   );
 }

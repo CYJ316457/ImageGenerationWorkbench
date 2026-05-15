@@ -14,15 +14,18 @@ export function RuntimeConfigPanel({
   onClearCache
 }: RuntimeConfigPanelProps) {
   return (
-    <section className="panel">
-      <div className="panel__header">
+    <section className="panel panel--compact">
+      <div className="compact-header">
         <div>
-          <p className="eyebrow">运行时凭据</p>
-          <h2>手动输入 Base URL 和 API Key</h2>
+          <p className="eyebrow">工作台</p>
+          <h1 className="compact-title">生图工作台</h1>
         </div>
+        <button className="secondary-button" onClick={onClearCache} type="button">
+          清缓存
+        </button>
       </div>
 
-      <div className="stack-fields">
+      <div className="runtime-grid">
         <label className="field">
           <span className="field__label">Base URL</span>
           <input
@@ -47,16 +50,6 @@ export function RuntimeConfigPanel({
             value={apiKey}
           />
         </label>
-      </div>
-
-      <p className="security-note">
-        这两个值只会跟随当前请求发送到服务端，不会写入任务历史；页面会把它们缓存到当前浏览器，方便下次继续使用。
-      </p>
-
-      <div className="inline-actions">
-        <button className="secondary-button" onClick={onClearCache} type="button">
-          清空本地缓存
-        </button>
       </div>
     </section>
   );

@@ -3,6 +3,7 @@ export type TaskMode = "generate" | "edit";
 export type TaskStatus = "queued" | "running" | "succeeded" | "failed";
 
 export type ResolutionOption = "auto" | "1024x1024" | "1536x1024" | "1024x1536";
+export type ImageProtocol = "images" | "responses";
 
 export type StylePresetId =
   | "none"
@@ -53,6 +54,7 @@ export interface GenerateFormInput {
   styleId: StylePresetId;
   resolution: ResolutionOption;
   enableOptimization: boolean;
+  protocol: ImageProtocol;
   provider: RuntimeProviderConfig;
 }
 

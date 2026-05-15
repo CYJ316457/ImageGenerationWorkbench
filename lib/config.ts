@@ -1,6 +1,7 @@
 import path from "node:path";
 
 export const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
+export const RESPONSES_MODEL = process.env.OPENAI_RESPONSES_MODEL || "gpt-5.5";
 
 export const APP_NAME = "生图工作台";
 

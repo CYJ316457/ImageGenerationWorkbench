@@ -5,12 +5,19 @@ import { useEffect, useMemo, useState } from "react";
 import { TaskList } from "@/components/history/TaskList";
 import { ImageEditorUpload } from "@/components/workbench/ImageEditorUpload";
 import { PromptEditor } from "@/components/workbench/PromptEditor";
+import { ProtocolPicker } from "@/components/workbench/ProtocolPicker";
 import { ResolutionPicker } from "@/components/workbench/ResolutionPicker";
 import { ResultStage } from "@/components/workbench/ResultStage";
 import { RuntimeConfigPanel } from "@/components/workbench/RuntimeConfigPanel";
 import { StylePresetPanel } from "@/components/workbench/StylePresetPanel";
 import { buildOptimizedPrompt } from "@/lib/prompt/optimizer";
-import type { ImageTaskSummary, ResolutionOption, StylePresetId, TaskMode } from "@/lib/types";
+import type {
+  ImageProtocol,
+  ImageTaskSummary,
+  ResolutionOption,
+  StylePresetId,
+  TaskMode
+} from "@/lib/types";
 
 interface WorkbenchShellProps {
   initialTasks: ImageTaskSummary[];
@@ -22,11 +29,12 @@ interface CachedWorkbenchState {
   styleId: StylePresetId;
   resolution: ResolutionOption;
   enableOptimization: boolean;
+  protocol: ImageProtocol;
   baseUrl: string;
   apiKey: string;
 }
 
-const WORKBENCH_CACHE_KEY = "image-generation-workbench:cache:v2";
+const WORKBENCH_CACHE_KEY = "image-generation-workbench:cache:v3";
 const DEFAULT_BASE_URL = "https://api.openai.com/v1";
 
 const DEFAULT_CACHE_STATE: CachedWorkbenchState = {
@@ -35,6 +43,7 @@ const DEFAULT_CACHE_STATE: CachedWorkbenchState = {
   styleId: "cinematic",
   resolution: "1536x1024",
   enableOptimization: true,
+  protocol: "images",
   baseUrl: DEFAULT_BASE_URL,
   apiKey: ""
 };
@@ -58,6 +67,10 @@ function isResolutionOption(value: unknown): value is ResolutionOption {
   return value === "auto" || value === "1024x1024" || value === "1536x1024" || value === "1024x1536";
 }
 
+function isImageProtocol(value: unknown): value is ImageProtocol {
+  return value === "images" || value === "responses";
+}
+
 function normalizeCachedState(raw: unknown): CachedWorkbenchState {
   if (!raw || typeof raw !== "object") {
     return DEFAULT_CACHE_STATE;
@@ -74,6 +87,7 @@ function normalizeCachedState(raw: unknown): CachedWorkbenchState {
       typeof candidate.enableOptimization === "boolean"
         ? candidate.enableOptimization
         : DEFAULT_CACHE_STATE.enableOptimization,
+    protocol: isImageProtocol(candidate.protocol) ? candidate.protocol : DEFAULT_CACHE_STATE.protocol,
     baseUrl:
       typeof candidate.baseUrl === "string" && candidate.baseUrl.trim()
         ? candidate.baseUrl
@@ -104,12 +118,35 @@ export function WorkbenchShell({ initialTasks }: WorkbenchShellProps) {
   const [activeTask, setActiveTask] = useState<ImageTaskSummary | null>(initialTasks[0] ?? null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [submitStartedAt, setSubmitStartedAt] = useState<number | null>(null);
+  const [clockTick, setClockTick] = useState(0);
 
-  const { apiKey, baseUrl, enableOptimization, mode, prompt, resolution, styleId } = draft;
+  const { apiKey, baseUrl, enableOptimization, mode, prompt, protocol, resolution, styleId } = draft;
 
   useEffect(() => {
     window.localStorage.setItem(WORKBENCH_CACHE_KEY, JSON.stringify(draft));
   }, [draft]);
+
+  useEffect(() => {
+    if (!isSubmitting || !submitStartedAt) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setClockTick(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [isSubmitting, submitStartedAt]);
+
+  const elapsedSeconds = useMemo(() => {
+    if (!isSubmitting || !submitStartedAt) {
+      return 0;
+    }
+
+    const now = clockTick || submitStartedAt;
+    return Math.max(1, Math.floor((now - submitStartedAt) / 1000));
+  }, [clockTick, isSubmitting, submitStartedAt]);
 
   const optimizedPreview = useMemo(() => {
     return buildOptimizedPrompt({
@@ -152,6 +189,9 @@ export function WorkbenchShell({ initialTasks }: WorkbenchShellProps) {
 
   async function handleSubmit() {
     setIsSubmitting(true);
+    const startedAt = Date.now();
+    setClockTick(startedAt);
+    setSubmitStartedAt(startedAt);
     setErrorMessage("");
 
     try {
@@ -166,6 +206,7 @@ export function WorkbenchShell({ initialTasks }: WorkbenchShellProps) {
             styleId,
             resolution,
             enableOptimization,
+            protocol,
             provider: {
               baseUrl,
               apiKey
@@ -190,6 +231,7 @@ export function WorkbenchShell({ initialTasks }: WorkbenchShellProps) {
         formData.append("styleId", styleId);
         formData.append("resolution", resolution);
         formData.append("enableOptimization", String(enableOptimization));
+        formData.append("protocol", protocol);
         formData.append("baseUrl", baseUrl);
         formData.append("apiKey", apiKey);
 
@@ -221,39 +263,34 @@ export function WorkbenchShell({ initialTasks }: WorkbenchShellProps) {
       setErrorMessage(error instanceof Error ? error.message : "操作失败。");
     } finally {
       setIsSubmitting(false);
+      setClockTick(0);
+      setSubmitStartedAt(null);
       void refreshTasks();
     }
   }
 
   return (
-    <div className="shell">
-      <header className="hero">
-        <div>
-          <p className="eyebrow">ImageGenerationWorkbench</p>
-          <h1>部署到服务端的生图工作台</h1>
-          <p className="hero__copy">
-            面向图片模型的网页工作台：文本生图、原图编辑、提示词优化、风格预设、分辨率选择和历史复用，全部集中在一个界面里。
-          </p>
-        </div>
+    <div className="shell shell--compact">
+      <header className="hero hero--compact">
         <div className="hero__actions">
           <button
             className={`mode-chip ${mode === "generate" ? "active" : ""}`}
             onClick={() => updateDraft({ mode: "generate" })}
             type="button"
           >
-            文本生图
+            生图
           </button>
           <button
             className={`mode-chip ${mode === "edit" ? "active" : ""}`}
             onClick={() => updateDraft({ mode: "edit" })}
             type="button"
           >
-            编辑图片
+            编辑
           </button>
         </div>
       </header>
 
-      <main className="workspace-grid">
+      <main className="workspace-grid workspace-grid--compact">
         <aside className="workspace-grid__sidebar">
           <RuntimeConfigPanel
             apiKey={apiKey}
@@ -262,6 +299,15 @@ export function WorkbenchShell({ initialTasks }: WorkbenchShellProps) {
             onBaseUrlChange={(value) => updateDraft({ baseUrl: value })}
             onClearCache={clearLocalCache}
           />
+
+          <section className="panel panel--compact">
+            <div className="compact-select-grid">
+              <ProtocolPicker onChange={(value) => updateDraft({ protocol: value })} value={protocol} />
+              <StylePresetPanel onChange={(value) => updateDraft({ styleId: value })} value={styleId} />
+              <ResolutionPicker onChange={(value) => updateDraft({ resolution: value })} value={resolution} />
+            </div>
+          </section>
+
           <PromptEditor
             enableOptimization={enableOptimization}
             onChange={(value) => updateDraft({ prompt: value })}
@@ -269,8 +315,7 @@ export function WorkbenchShell({ initialTasks }: WorkbenchShellProps) {
             optimizedPrompt={optimizedPreview}
             prompt={prompt}
           />
-          <StylePresetPanel onChange={(value) => updateDraft({ styleId: value })} value={styleId} />
-          <ResolutionPicker onChange={(value) => updateDraft({ resolution: value })} value={resolution} />
+
           {mode === "edit" ? (
             <ImageEditorUpload
               maskImageName={maskImage?.name ?? ""}
@@ -279,21 +324,28 @@ export function WorkbenchShell({ initialTasks }: WorkbenchShellProps) {
               sourceImageName={sourceImage?.name ?? ""}
             />
           ) : null}
+
           <button className="submit-button" disabled={isSubmitting} onClick={handleSubmit} type="button">
             {isSubmitting ? "处理中..." : mode === "generate" ? "开始生图" : "开始编辑"}
           </button>
         </aside>
 
         <section className="workspace-grid__main">
-          <ResultStage activeTask={activeTask} errorMessage={errorMessage} isSubmitting={isSubmitting} />
+          <ResultStage
+            activeTask={activeTask}
+            elapsedSeconds={elapsedSeconds}
+            errorMessage={errorMessage}
+            isSubmitting={isSubmitting}
+            mode={mode}
+            protocol={protocol}
+          />
         </section>
 
         <section className="workspace-grid__history">
-          <div className="panel">
+          <div className="panel panel--compact">
             <div className="panel__header">
               <div>
                 <p className="eyebrow">最近任务</p>
-                <h2>快速回看和复用</h2>
               </div>
             </div>
             <TaskList compact tasks={tasks.slice(0, 5)} />

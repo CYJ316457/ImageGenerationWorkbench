@@ -26,6 +26,7 @@ export async function POST(request: Request) {
       styleId: String(formData.get("styleId") || "none") as EditFormInput["styleId"],
       resolution: String(formData.get("resolution") || "auto") as EditFormInput["resolution"],
       enableOptimization: String(formData.get("enableOptimization") || "true") === "true",
+      protocol: String(formData.get("protocol") || "images") as EditFormInput["protocol"],
       provider: {
         baseUrl: String(formData.get("baseUrl") || ""),
         apiKey: String(formData.get("apiKey") || "")
